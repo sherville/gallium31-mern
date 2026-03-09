@@ -200,7 +200,7 @@ Delete employee
 
 ### Register Page
 
-![Register Screenshot] (screenshots/register.png) 
+![Register Screenshot](screenshots/register.png.png)
 
 ### Employee Dashboard
 
