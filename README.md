@@ -1,30 +1,47 @@
 # MERN Employee Management System
 
-## Project Overview
+## Overview
 
-This project is a **MERN stack web application** that implements **user
-authentication and protected CRUD operations** for managing employee
-records.
+This project is a **full‑stack MERN application** that demonstrates
+secure authentication and protected CRUD operations for managing
+employee records.
 
-The system allows registered users to log in and securely perform
-**Create, Read, Update, and Delete (CRUD)** operations on employee data
-through a web interface.
+Users can register, log in securely, and manage employee information
+through a web interface. The system uses **JWT authentication** to
+protect backend routes and ensure only authorized users can access
+employee data.
 
-This project demonstrates the implementation of a full-stack application
-using modern web technologies including **MongoDB, Express, React, and
-Node.js**, along with **JWT-based authentication**.
+------------------------------------------------------------------------
+
+# System Architecture
+
+    +-------------+        HTTP Requests        +-------------+
+    |             |  Axios / REST API Calls     |             |
+    |   React     |  ------------------------->  |   Express   |
+    |   Frontend  |                              |   Backend   |
+    |             |  <-------------------------  |             |
+    +-------------+        JSON Responses       +-------------+
+            |                                           |
+            |                                           |
+            |                                   Mongoose ODM
+            |                                           |
+            v                                           v
+                        +------------------------+
+                        |      MongoDB Atlas     |
+                        |  Employee & User Data  |
+                        +------------------------+
 
 ------------------------------------------------------------------------
 
 # Tech Stack
 
-### Frontend
+## Frontend
 
 -   React.js
 -   Axios
 -   Bootstrap
 
-### Backend
+## Backend
 
 -   Node.js
 -   Express.js
@@ -39,24 +56,25 @@ Node.js**, along with **JWT-based authentication**.
 
 ## Authentication
 
--   User registration
+-   User Registration
 -   Password hashing using bcrypt
--   User login with JWT token generation
--   Protected routes requiring authentication
+-   Secure login using JWT
+-   Protected API routes
 
 ## Employee Management
 
 Authenticated users can:
 
 -   Create employee records
--   View employee list
--   Update employee information
+-   View employees list
+-   Update employee details
 -   Delete employee records
 
 ## Security
 
--   JWT authentication middleware protects employee endpoints
--   Passwords are hashed before storing in the database
+-   JWT authentication middleware
+-   Password hashing before storage
+-   Protected backend routes
 
 ------------------------------------------------------------------------
 
@@ -77,7 +95,7 @@ Authenticated users can:
     │   │   └── authMiddleware.js
     │   │
     │   ├── server.js
-    │   └── .env
+    │   └── package.json
     │
     └── frontend
         ├── src
@@ -99,34 +117,29 @@ Authenticated users can:
 
 # Installation Guide
 
-## 1. Clone the Repository
+## Clone Repository
 
-    git clone https://github.com/your-repository-url.git
+    git clone https://github.com/YOUR_USERNAME/gallium31-mern.git
     cd gallium31-mern
 
 ------------------------------------------------------------------------
 
 # Backend Setup
 
-Navigate to the backend folder:
-
     cd backend
-
-Install dependencies:
-
     npm install
 
-Create a `.env` file inside the backend folder:
+Create `.env` file
 
     PORT=5050
-    MONGO_URI=your_mongodb_atlas_connection_string
-    JWT_SECRET=your_jwt_secret_key
+    MONGO_URI=your_mongodb_connection_string
+    JWT_SECRET=your_secret_key
 
-Start the backend server:
+Run backend:
 
     npm run dev
 
-The backend server will run at:
+Server runs at:
 
     http://localhost:5050
 
@@ -134,19 +147,11 @@ The backend server will run at:
 
 # Frontend Setup
 
-Navigate to the frontend folder:
-
     cd frontend
-
-Install dependencies:
-
     npm install
-
-Start the React development server:
-
     npm start
 
-The frontend application will run at:
+Frontend runs at:
 
     http://localhost:3000
 
@@ -186,13 +191,31 @@ Delete employee
 
 ------------------------------------------------------------------------
 
-# Authentication Header
+# Screenshots
 
-All protected routes require a JWT token in the request header.
 
-Example:
+### Login Page
 
-    Authorization: Bearer <JWT_TOKEN>
+![Login Screenshot](screenshots/login.png)
+
+### Register Page
+
+![Register Screenshot] (screenshots/register.png) 
+
+### Employee Dashboard
+
+![Dashboard Screenshot](screenshots/dashboard.png)
+
+------------------------------------------------------------------------
+
+# Demo Flow
+
+1.  Register a new account
+2.  Login using the created credentials
+3.  Access the protected employee dashboard
+4.  Add a new employee
+5.  Edit employee details
+6.  Delete employee records
 
 ------------------------------------------------------------------------
 
@@ -200,7 +223,7 @@ Example:
 
 The application was tested using:
 
--   Postman for backend API testing
+-   Postman (API testing)
 -   Browser testing for frontend functionality
 
 ------------------------------------------------------------------------
