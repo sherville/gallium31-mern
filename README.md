@@ -113,6 +113,29 @@ Authenticated users can:
         │   ├── App.js
         │   └── index.js
 
+
+## Updated Project Structue (Dockerized)
+
+## Project Structure
+
+        gallium31-mern
+    │
+    ├── backend
+    │   ├── models
+    │   ├── routes
+    │   ├── middleware
+    │   ├── Dockerfile
+    │   └── server.js
+    │
+    ├── frontend
+    │   ├── src
+    │   ├── public
+    │   ├── Dockerfile
+    │   └── package.json
+    │
+    ├── docker-compose.yml
+    ├── README.md
+    └── .gitignore
 ------------------------------------------------------------------------
 
 # Installation Guide
@@ -227,6 +250,52 @@ The application was tested using:
 -   Browser testing for frontend functionality
 
 ------------------------------------------------------------------------
+
+# Running the Application with Docker
+
+The application has been containerized using Docker. Both the frontend and backend services can be started using Docker Compose.
+
+## Prerequisites
+
+Make sure Docker Desktop is installed and running.
+
+Check installation:
+
+docker --version
+docker compose version
+
+---
+
+## Running the Application
+
+From the project root directory:
+
+docker compose up --build
+
+This command will:
+
+• Build the Docker images  
+• Start the backend container  
+• Start the frontend container  
+
+---
+
+## Application URLs
+
+Frontend:
+http://localhost:3000
+
+Backend API:
+http://localhost:5050
+
+---
+
+## Stopping the Containers
+
+To stop the running containers:
+
+docker compose down
+
 
 # Author
 
