@@ -5,6 +5,7 @@ require("dotenv").config();
 
 const authRoutes = require("./routes/authRoutes");
 const employeeRoutes = require("./routes/employeeRoutes");
+const dynamicCrudRoutes = require("./routes/dynamicCrudRoutes");
 
 const app = express();
 
@@ -32,3 +33,6 @@ app.use("/api/employees", employeeRoutes);
 // Start server
 const PORT = process.env.PORT || 5050;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+//dynamic crud routes
+app.use("/api/dynamic", dynamicCrudRoutes);
