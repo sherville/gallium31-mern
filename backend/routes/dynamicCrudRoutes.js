@@ -7,6 +7,8 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
+
+
 /**
  * GET all available models
  */
@@ -71,17 +73,17 @@ router.get("/:model/:id", authMiddleware, async (req, res) => {
 router.post("/:model", authMiddleware, async (req, res) => {
   try {
     const { model } = req.params;
-    const payload = req.body;
+    const payload = req.body || {};
 
     if (!models[model]) {
       return res.status(404).json({ message: "Model not found." });
     }
 
-    const errors = validateData(models[model], payload);
-
-    if (errors.length > 0) {
-      return res.status(400).json({ message: "Validation failed.", errors });
+    if (Object.keys(payload).length === 0) {
+      return res.status(400).json({ message: "Request body is required." });
     }
+
+    const errors = validateData(models[model], payload);
 
     const record = await DynamicRecord.create({
       modelName: model,
