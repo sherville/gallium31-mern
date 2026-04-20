@@ -40,7 +40,10 @@ export default function ModelsPage() {
             <div className="col-md-6 col-lg-4" key={modelName}>
               <div className="card shadow-sm h-100">
                 <div className="card-body d-flex flex-column">
-                  <h5 className="card-title">{config.label || modelName}</h5>
+                  <h5 className="card-title">
+                    {config.label || modelName}
+                  </h5>
+
                   <p className="text-muted small mb-3">
                     Model key: <strong>{modelName}</strong>
                   </p>
@@ -48,12 +51,16 @@ export default function ModelsPage() {
                   <div className="mb-3">
                     <strong>Fields:</strong>
                     <ul className="mt-2 mb-0">
-                      {Object.entries(config.fields || {}).map(([fieldName, fieldConfig]) => (
-                        <li key={fieldName}>
-                          {fieldName}{" "}
-                          <span className="text-muted">({fieldConfig.type})</span>
-                        </li>
-                      ))}
+                      {Object.entries(config.fields || {}).map(
+                        ([fieldName, fieldConfig]) => (
+                          <li key={fieldName}>
+                            {fieldName}{" "}
+                            <span className="text-muted">
+                              ({fieldConfig.type})
+                            </span>
+                          </li>
+                        )
+                      )}
                     </ul>
                   </div>
 
@@ -61,6 +68,7 @@ export default function ModelsPage() {
                     <Link
                       to={`/dynamic/${modelName}`}
                       className="btn btn-primary w-100"
+                      data-testid={`open-model-${modelName}`}
                     >
                       Open {config.label || modelName}
                     </Link>
@@ -72,7 +80,9 @@ export default function ModelsPage() {
 
           {Object.keys(models).length === 0 && (
             <div className="col-12">
-              <div className="alert alert-warning mb-0">No models found.</div>
+              <div className="alert alert-warning mb-0">
+                No models found.
+              </div>
             </div>
           )}
         </div>

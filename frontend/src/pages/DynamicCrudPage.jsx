@@ -40,6 +40,7 @@ export default function DynamicCrudPage() {
 
   useEffect(() => {
     loadPageData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelName]);
 
   const handleInputChange = (fieldName, value, type) => {
@@ -137,7 +138,11 @@ export default function DynamicCrudPage() {
         </Link>
       </div>
 
-      {msg && <div className="alert alert-warning">{msg}</div>}
+      {msg && (
+            <div data-testid="validation-error" className="alert alert-warning">
+                {msg}
+        </div>
+    )}
 
       <div className="card shadow-sm mb-4">
         <div className="card-body">
@@ -154,25 +159,32 @@ export default function DynamicCrudPage() {
                 </label>
 
                 <input
-                  type={
-                    fieldConfig.type === "number"
-                      ? "number"
-                      : fieldConfig.type === "date"
-                      ? "date"
-                      : "text"
-                  }
-                  className="form-control"
-                  value={formData[fieldName] ?? ""}
-                  onChange={(e) =>
-                    handleInputChange(fieldName, e.target.value, fieldConfig.type)
-                  }
-                  required={fieldConfig.required}
-                />
+  data-testid={`field-${fieldName}`}
+  type={
+    fieldConfig.format === "email"
+      ? "email"
+      : fieldConfig.type === "number"
+      ? "number"
+      : fieldConfig.type === "date"
+      ? "date"
+      : "text"
+  }
+  className="form-control"
+  value={formData[fieldName] ?? ""}
+  onChange={(e) =>
+    handleInputChange(fieldName, e.target.value, fieldConfig.type)
+  }
+  required={fieldConfig.required}
+/>
               </div>
             ))}
 
             <div className="col-12 d-flex gap-2">
-              <button type="submit" className="btn btn-primary">
+              <button
+                data-testid="dynamic-submit"
+                type="submit"
+                className="btn btn-primary"
+              >
                 {editingId ? "Update" : "Create"}
               </button>
 
