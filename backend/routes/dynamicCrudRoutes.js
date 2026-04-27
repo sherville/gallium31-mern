@@ -9,6 +9,189 @@ const { successResponse, errorResponse } = require("../utils/apiResponse");
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Dynamic CRUD
+ *   description: Model-driven CRUD endpoints with validation, RBAC, audit trails, and soft deletes
+ */
+
+/**
+ * @swagger
+ * /api/dynamic/models:
+ *   get:
+ *     summary: Get all available dynamic model definitions
+ *     tags: [Dynamic CRUD]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Models fetched successfully
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /api/dynamic/audit/logs:
+ *   get:
+ *     summary: Get audit logs
+ *     tags: [Dynamic CRUD]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Audit logs fetched successfully
+ *       401:
+ *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /api/dynamic/{model}:
+ *   get:
+ *     summary: Get records for a dynamic model
+ *     tags: [Dynamic CRUD]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: model
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: employees
+ *     responses:
+ *       200:
+ *         description: Records fetched successfully
+ *       404:
+ *         description: Model not found
+ *
+ *   post:
+ *     summary: Create a record for a dynamic model
+ *     description: Admin role required.
+ *     tags: [Dynamic CRUD]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: model
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: employees
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             example:
+ *               firstName: Juan
+ *               lastName: Dela Cruz
+ *               email: juan@test.com
+ *               department: IT
+ *               salary: 30000
+ *               hiredAt: "2026-04-27"
+ *     responses:
+ *       201:
+ *         description: Record created successfully
+ *       400:
+ *         description: Validation failed
+ *       403:
+ *         description: Access denied
+ */
+
+/**
+ * @swagger
+ * /api/dynamic/{model}/{id}:
+ *   get:
+ *     summary: Get a single dynamic record
+ *     tags: [Dynamic CRUD]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: model
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: employees
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Record fetched successfully
+ *       404:
+ *         description: Record not found
+ *
+ *   put:
+ *     summary: Update a dynamic record
+ *     description: Admin role required.
+ *     tags: [Dynamic CRUD]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: model
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: employees
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             example:
+ *               department: Engineering
+ *               salary: 35000
+ *     responses:
+ *       200:
+ *         description: Record updated successfully
+ *       400:
+ *         description: Validation failed
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Record not found
+ *
+ *   delete:
+ *     summary: Soft delete a dynamic record
+ *     description: Admin role required.
+ *     tags: [Dynamic CRUD]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: model
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: employees
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Record soft deleted successfully
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Record not found
+ */
+
 const getActor = (req) => req.user?.email || req.user?.id || "unknown";
 
 /**
