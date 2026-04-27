@@ -4,27 +4,47 @@ const DynamicRecord = require("../models/DynamicRecord");
 const AuditLog = require("../models/AuditLog");
 const validateData = require("../utils/validation");
 const authMiddleware = require("../middleware/authMiddleware");
+const requireRole = require("../middleware/roleMiddleware");
+const { successResponse, errorResponse } = require("../utils/apiResponse");
 
 const router = express.Router();
 
-
+const getActor = (req) => req.user?.email || req.user?.id || "unknown";
 
 /**
- * GET all available models
+ * GET /api/dynamic/models
  */
 router.get("/models", authMiddleware, (req, res) => {
-  return res.status(200).json(models);
+  return successResponse(res, "Models fetched successfully.", models);
 });
 
 /**
- * GET records by model
+ * GET /api/dynamic/audit/logs
+ */
+router.get("/audit/logs", authMiddleware, async (req, res) => {
+  try {
+    const logs = await AuditLog.find().sort({ createdAt: -1 });
+    return successResponse(res, "Audit logs fetched successfully.", logs);
+  } catch (error) {
+    console.error("GET AUDIT LOGS ERROR:", error);
+    return errorResponse(res, "Failed to fetch audit logs.", error.message, 500);
+  }
+});
+
+/**
+ * GET /api/dynamic/:model
  */
 router.get("/:model", authMiddleware, async (req, res) => {
   try {
     const { model } = req.params;
 
     if (!models[model]) {
-      return res.status(404).json({ message: "Model not found." });
+      return errorResponse(
+        res,
+        "Model not found.",
+        `No model named '${model}'.`,
+        404
+      );
     }
 
     const records = await DynamicRecord.find({
@@ -32,22 +52,27 @@ router.get("/:model", authMiddleware, async (req, res) => {
       deleted: false,
     }).sort({ createdAt: -1 });
 
-    return res.status(200).json(records);
+    return successResponse(res, "Records fetched successfully.", records);
   } catch (error) {
     console.error("GET RECORDS ERROR:", error);
-    return res.status(500).json({ message: "Server error." });
+    return errorResponse(res, "Failed to fetch records.", error.message, 500);
   }
 });
 
 /**
- * GET single record by model and id
+ * GET /api/dynamic/:model/:id
  */
 router.get("/:model/:id", authMiddleware, async (req, res) => {
   try {
     const { model, id } = req.params;
 
     if (!models[model]) {
-      return res.status(404).json({ message: "Model not found." });
+      return errorResponse(
+        res,
+        "Model not found.",
+        `No model named '${model}'.`,
+        404
+      );
     }
 
     const record = await DynamicRecord.findOne({
@@ -57,157 +82,232 @@ router.get("/:model/:id", authMiddleware, async (req, res) => {
     });
 
     if (!record) {
-      return res.status(404).json({ message: "Record not found." });
+      return errorResponse(
+        res,
+        "Record not found.",
+        `No active record found with id '${id}'.`,
+        404
+      );
     }
 
-    return res.status(200).json(record);
+    return successResponse(res, "Record fetched successfully.", record);
   } catch (error) {
     console.error("GET SINGLE RECORD ERROR:", error);
-    return res.status(500).json({ message: "Server error." });
+    return errorResponse(res, "Failed to fetch record.", error.message, 500);
   }
 });
 
 /**
- * CREATE record
+ * POST /api/dynamic/:model
+ * Admin only
  */
-router.post("/:model", authMiddleware, async (req, res) => {
-  try {
-    const { model } = req.params;
-    const payload = req.body || {};
+router.post(
+  "/:model",
+  authMiddleware,
+  requireRole("admin"),
+  async (req, res) => {
+    try {
+      const { model } = req.params;
+      const payload = req.body || {};
 
-    if (!models[model]) {
-      return res.status(404).json({ message: "Model not found." });
+      if (!models[model]) {
+        return errorResponse(
+          res,
+          "Model not found.",
+          `No model named '${model}'.`,
+          404
+        );
+      }
+
+      if (Object.keys(payload).length === 0) {
+        return errorResponse(
+          res,
+          "Validation failed.",
+          "Request body is required.",
+          400
+        );
+      }
+
+      const errors = validateData(models[model], payload);
+
+      if (errors.length > 0) {
+        return errorResponse(res, "Validation failed.", errors, 400);
+      }
+
+      const actor = getActor(req);
+
+      const record = await DynamicRecord.create({
+        modelName: model,
+        data: payload,
+        createdBy: actor,
+        updatedBy: actor,
+      });
+
+      await AuditLog.create({
+        action: "create",
+        modelName: model,
+        recordId: record._id.toString(),
+        changedBy: actor,
+        before: null,
+        after: record,
+      });
+
+      return successResponse(res, "Record created successfully.", record, 201);
+    } catch (error) {
+      console.error("CREATE RECORD ERROR:", error);
+      return errorResponse(res, "Failed to create record.", error.message, 500);
     }
-
-    if (Object.keys(payload).length === 0) {
-      return res.status(400).json({ message: "Request body is required." });
-    }
-
-    const errors = validateData(models[model], payload);
-
-    const record = await DynamicRecord.create({
-      modelName: model,
-      data: payload,
-      createdBy: req.user?.email || req.user?.id || "unknown",
-      updatedBy: req.user?.email || req.user?.id || "unknown",
-    });
-
-    await AuditLog.create({
-      action: "create",
-      modelName: model,
-      recordId: record._id.toString(),
-      changedBy: req.user?.email || req.user?.id || "unknown",
-      before: null,
-      after: record,
-    });
-
-    return res.status(201).json(record);
-  } catch (error) {
-    console.error("CREATE RECORD ERROR:", error);
-    return res.status(500).json({ message: "Server error." });
   }
-});
+);
 
 /**
- * UPDATE record
+ * PUT /api/dynamic/:model/:id
+ * Admin only
  */
-router.put("/:model/:id", authMiddleware, async (req, res) => {
-  try {
-    const { model, id } = req.params;
-    const payload = req.body;
+router.put(
+  "/:model/:id",
+  authMiddleware,
+  requireRole("admin"),
+  async (req, res) => {
+    try {
+      const { model, id } = req.params;
+      const payload = req.body || {};
 
-    if (!models[model]) {
-      return res.status(404).json({ message: "Model not found." });
+      if (!models[model]) {
+        return errorResponse(
+          res,
+          "Model not found.",
+          `No model named '${model}'.`,
+          404
+        );
+      }
+
+      if (Object.keys(payload).length === 0) {
+        return errorResponse(
+          res,
+          "Validation failed.",
+          "Request body is required.",
+          400
+        );
+      }
+
+      const existing = await DynamicRecord.findOne({
+        _id: id,
+        modelName: model,
+        deleted: false,
+      });
+
+      if (!existing) {
+        return errorResponse(
+          res,
+          "Record not found.",
+          `No active record found with id '${id}'.`,
+          404
+        );
+      }
+
+      const mergedData = {
+        ...existing.data,
+        ...payload,
+      };
+
+      const errors = validateData(models[model], mergedData);
+
+      if (errors.length > 0) {
+        return errorResponse(res, "Validation failed.", errors, 400);
+      }
+
+      const before = { ...existing.toObject() };
+      const actor = getActor(req);
+
+      existing.data = mergedData;
+      existing.updatedBy = actor;
+
+      await existing.save();
+
+      await AuditLog.create({
+        action: "update",
+        modelName: model,
+        recordId: existing._id.toString(),
+        changedBy: actor,
+        before,
+        after: existing,
+      });
+
+      return successResponse(res, "Record updated successfully.", existing);
+    } catch (error) {
+      console.error("UPDATE RECORD ERROR:", error);
+      return errorResponse(res, "Failed to update record.", error.message, 500);
     }
-
-    const existing = await DynamicRecord.findOne({
-      _id: id,
-      modelName: model,
-      deleted: false,
-    });
-
-    if (!existing) {
-      return res.status(404).json({ message: "Record not found." });
-    }
-
-    const mergedData = {
-      ...existing.data,
-      ...payload,
-    };
-
-    const errors = validateData(models[model], mergedData);
-
-    if (errors.length > 0) {
-      return res.status(400).json({ message: "Validation failed.", errors });
-    }
-
-    const before = { ...existing.toObject() };
-
-    existing.data = mergedData;
-    existing.updatedBy = req.user?.email || req.user?.id || "unknown";
-
-    await existing.save();
-
-    await AuditLog.create({
-      action: "update",
-      modelName: model,
-      recordId: existing._id.toString(),
-      changedBy: req.user?.email || req.user?.id || "unknown",
-      before,
-      after: existing,
-    });
-
-    return res.status(200).json(existing);
-  } catch (error) {
-    console.error("UPDATE RECORD ERROR:", error);
-    return res.status(500).json({ message: "Server error." });
   }
-});
+);
 
 /**
- * SOFT DELETE record
+ * DELETE /api/dynamic/:model/:id
+ * Admin only
  */
-router.delete("/:model/:id", authMiddleware, async (req, res) => {
-  try {
-    const { model, id } = req.params;
+router.delete(
+  "/:model/:id",
+  authMiddleware,
+  requireRole("admin"),
+  async (req, res) => {
+    try {
+      const { model, id } = req.params;
 
-    if (!models[model]) {
-      return res.status(404).json({ message: "Model not found." });
+      if (!models[model]) {
+        return errorResponse(
+          res,
+          "Model not found.",
+          `No model named '${model}'.`,
+          404
+        );
+      }
+
+      const existing = await DynamicRecord.findOne({
+        _id: id,
+        modelName: model,
+        deleted: false,
+      });
+
+      if (!existing) {
+        return errorResponse(
+          res,
+          "Record not found.",
+          `No active record found with id '${id}'.`,
+          404
+        );
+      }
+
+      const before = { ...existing.toObject() };
+      const actor = getActor(req);
+
+      existing.deleted = true;
+      existing.deletedAt = new Date();
+      existing.deletedBy = actor;
+      existing.updatedBy = actor;
+
+      await existing.save();
+
+      await AuditLog.create({
+        action: "delete",
+        modelName: model,
+        recordId: existing._id.toString(),
+        changedBy: actor,
+        before,
+        after: existing,
+      });
+
+      return successResponse(res, "Record soft deleted successfully.", {
+        id: existing._id,
+        deleted: true,
+        deletedAt: existing.deletedAt,
+        deletedBy: existing.deletedBy,
+      });
+    } catch (error) {
+      console.error("DELETE RECORD ERROR:", error);
+      return errorResponse(res, "Failed to delete record.", error.message, 500);
     }
-
-    const existing = await DynamicRecord.findOne({
-      _id: id,
-      modelName: model,
-      deleted: false,
-    });
-
-    if (!existing) {
-      return res.status(404).json({ message: "Record not found." });
-    }
-
-    const before = { ...existing.toObject() };
-
-    existing.deleted = true;
-    existing.deletedAt = new Date();
-    existing.deletedBy = req.user?.email || req.user?.id || "unknown";
-    existing.updatedBy = req.user?.email || req.user?.id || "unknown";
-
-    await existing.save();
-
-    await AuditLog.create({
-      action: "delete",
-      modelName: model,
-      recordId: existing._id.toString(),
-      changedBy: req.user?.email || req.user?.id || "unknown",
-      before,
-      after: existing,
-    });
-
-    return res.status(200).json({ message: "Record soft deleted successfully." });
-  } catch (error) {
-    console.error("DELETE RECORD ERROR:", error);
-    return res.status(500).json({ message: "Server error." });
   }
-});
+);
 
 module.exports = router;

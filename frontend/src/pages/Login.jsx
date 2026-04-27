@@ -6,23 +6,18 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState("");
-  const [loading, setLoading] = useState(false);
-
   const navigate = useNavigate();
 
   const submit = async (e) => {
     e.preventDefault();
     setMsg("");
-    setLoading(true);
 
     try {
       const res = await api.post("/api/auth/login", { email, password });
-      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("token", res.data.data.token);
       navigate("/employees");
     } catch (err) {
       setMsg(err?.response?.data?.message || "Login failed.");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -34,8 +29,10 @@ export default function Login() {
 
       <form onSubmit={submit}>
         <div className="mb-3">
-          <label className="form-label">Email</label>
+          <label htmlFor="login-email" className="form-label">Email</label>
           <input
+            id="login-email"
+            data-testid="login-email"
             className="form-control"
             type="email"
             value={email}
@@ -45,8 +42,10 @@ export default function Login() {
         </div>
 
         <div className="mb-3">
-          <label className="form-label">Password</label>
+          <label htmlFor="login-password" className="form-label">Password</label>
           <input
+            id="login-password"
+            data-testid="login-password"
             className="form-control"
             type="password"
             value={password}
@@ -55,8 +54,12 @@ export default function Login() {
           />
         </div>
 
-        <button className="btn btn-success w-100" disabled={loading}>
-          {loading ? "Signing in..." : "Login"}
+        <button
+          data-testid="login-submit"
+          className="btn btn-success w-100"
+          type="submit"
+        >
+          Login
         </button>
       </form>
 
