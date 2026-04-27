@@ -1,24 +1,20 @@
 /* eslint-disable testing-library/prefer-screen-queries */
 const { test, expect } = require('@playwright/test');
 
-const EMAIL = 'sherv@test.com';
-const PASSWORD = '123456';
+const ADMIN_EMAIL = 'sherv@test.com';
+const ADMIN_PASSWORD = '123456';
 
-async function login(page) {
-  await page.goto('http://127.0.0.1:3000/login');
-  
+const STANDARD_EMAIL = 'standard@test.com';
+const STANDARD_PASSWORD = '123456';
 
-  await page.locator('input[type="email"]').first().fill(EMAIL);
-  await page.locator('input[type="password"]').first().fill(PASSWORD);
+async function login(page, email = ADMIN_EMAIL, password = ADMIN_PASSWORD) {
+  await page.goto('http://127.0.0.1:3000/login', { waitUntil: 'networkidle' });
+
+  await page.locator('input[type="email"]').first().fill(email);
+  await page.locator('input[type="password"]').first().fill(password);
   await page.getByRole('button', { name: 'Login' }).click();
 
-  // wait until token is stored and navigation finishes
   await page.waitForURL('**/employees');
-
-  // VERY IMPORTANT: wait for localStorage to be set
-  await page.waitForFunction(() => {
-    return localStorage.getItem('token') !== null;
-  });
 }
 
 test.describe('Dynamic CRUD', () => {
@@ -109,4 +105,23 @@ test.describe('Dynamic CRUD', () => {
 
   expect(validity).toBeFalsy();
 });
+test('standard user cannot create employee record', async ({ page }) => {
+  await login(page, STANDARD_EMAIL, STANDARD_PASSWORD);
+
+  await page.goto('http://127.0.0.1:3000/dynamic/employees', {
+    waitUntil: 'networkidle',
+  });
+
+  await page.getByTestId('field-firstName').fill('Standard');
+  await page.getByTestId('field-lastName').fill('User');
+  await page.getByTestId('field-email').fill('standard-user@test.com');
+  await page.getByTestId('field-department').fill('Read Only');
+  await page.getByTestId('field-salary').fill('10000');
+  await page.getByTestId('field-hiredAt').fill('2026-04-27');
+
+  await page.getByTestId('dynamic-submit').click();
+
+  await expect(page.getByText(/access denied|insufficient permissions/i)).toBeVisible();
+});
+
 });

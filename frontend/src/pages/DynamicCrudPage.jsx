@@ -9,6 +9,8 @@ export default function DynamicCrudPage() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({});
   const [editingId, setEditingId] = useState(null);
@@ -29,10 +31,10 @@ export default function DynamicCrudPage() {
         api.get(`/api/dynamic/${modelName}`),
       ]);
 
-      setModels(modelsRes.data);
-      setRecords(recordsRes.data);
+      setModels(modelsRes.data.data || {});
+setRecords(recordsRes.data.data || []);
     } catch (err) {
-      setMsg(err?.response?.data?.message || "Failed to load dynamic CRUD page.");
+      setMsg(err?.response?.data?.message || "Failed to load page.");
     } finally {
       setLoading(false);
     }
@@ -40,7 +42,6 @@ export default function DynamicCrudPage() {
 
   useEffect(() => {
     loadPageData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelName]);
 
   const handleInputChange = (fieldName, value, type) => {
@@ -61,43 +62,49 @@ export default function DynamicCrudPage() {
     setEditingId(null);
   };
 
-  const startEdit = (record) => {
-    setEditingId(record._id);
-    setFormData(record.data || {});
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMsg("");
+    setSuccessMsg("");
+    setSubmitting(true);
 
     try {
       if (editingId) {
         await api.put(`/api/dynamic/${modelName}/${editingId}`, formData);
+        setSuccessMsg("Record updated successfully.");
       } else {
         await api.post(`/api/dynamic/${modelName}`, formData);
+        setSuccessMsg("Record created successfully.");
       }
 
       resetForm();
       await loadPageData();
     } catch (err) {
       const errorData = err?.response?.data;
-      if (errorData?.errors?.length) {
-        setMsg(errorData.errors.join(" "));
+
+      if (Array.isArray(errorData?.error)) {
+        setMsg(errorData.error.join(" "));
+      } else if (errorData?.error) {
+        setMsg(errorData.error);
+      } else if (errorData?.message) {
+        setMsg(errorData.message);
       } else {
-        setMsg(errorData?.message || "Operation failed.");
+        setMsg("Operation failed.");
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleDelete = async (id) => {
-    const ok = window.confirm("Soft delete this record?");
-    if (!ok) return;
+    if (!window.confirm("Soft delete this record?")) return;
 
     setMsg("");
+    setSuccessMsg("");
 
     try {
       await api.delete(`/api/dynamic/${modelName}/${id}`);
+      setSuccessMsg("Record deleted successfully.");
       await loadPageData();
     } catch (err) {
       setMsg(err?.response?.data?.message || "Delete failed.");
@@ -106,7 +113,7 @@ export default function DynamicCrudPage() {
 
   if (loading) {
     return (
-      <div className="container mt-4" style={{ maxWidth: 1100 }}>
+      <div className="container mt-4">
         <div className="alert alert-light">Loading...</div>
       </div>
     );
@@ -114,145 +121,104 @@ export default function DynamicCrudPage() {
 
   if (!modelConfig) {
     return (
-      <div className="container mt-4" style={{ maxWidth: 1100 }}>
+      <div className="container mt-4">
         <div className="alert alert-danger">Model not found.</div>
         <Link to="/dynamic" className="btn btn-secondary">
-          Back to Models
+          Back
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="container mt-4" style={{ maxWidth: 1100 }}>
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <h2 className="mb-1">{modelConfig.label}</h2>
-          <p className="text-muted mb-0">
-            Dynamic CRUD management for <strong>{modelName}</strong>
-          </p>
-        </div>
-
-        <Link to="/dynamic" className="btn btn-outline-secondary">
-          Back to Models
-        </Link>
-      </div>
+    <div className="container mt-4">
+      <h2>{modelConfig.label}</h2>
 
       {msg && (
-            <div data-testid="validation-error" className="alert alert-warning">
-                {msg}
+        <div data-testid="validation-error" className="alert alert-warning">
+          {msg}
         </div>
-    )}
+      )}
 
-      <div className="card shadow-sm mb-4">
-        <div className="card-body">
-          <h5 className="card-title mb-3">
-            {editingId ? "Edit Record" : "Create Record"}
-          </h5>
+      {successMsg && (
+        <div className="alert alert-success">{successMsg}</div>
+      )}
 
-          <form onSubmit={handleSubmit} className="row g-3">
-            {Object.entries(fields).map(([fieldName, fieldConfig]) => (
-              <div className="col-md-6" key={fieldName}>
-                <label className="form-label">
-                  {fieldName}
-                  {fieldConfig.required ? " *" : ""}
-                </label>
+      <form onSubmit={handleSubmit} className="row g-3">
+        {Object.entries(fields).map(([fieldName, config]) => (
+          <div className="col-md-6" key={fieldName}>
+            <label>{fieldName}</label>
+            <input
+              data-testid={`field-${fieldName}`}
+              type={
+                config.format === "email"
+                  ? "email"
+                  : config.type === "number"
+                  ? "number"
+                  : config.type === "date"
+                  ? "date"
+                  : "text"
+              }
+              className="form-control"
+              value={formData[fieldName] ?? ""}
+              onChange={(e) =>
+                handleInputChange(fieldName, e.target.value, config.type)
+              }
+              required={config.required}
+            />
+          </div>
+        ))}
 
-                <input
-  data-testid={`field-${fieldName}`}
-  type={
-    fieldConfig.format === "email"
-      ? "email"
-      : fieldConfig.type === "number"
-      ? "number"
-      : fieldConfig.type === "date"
-      ? "date"
-      : "text"
-  }
-  className="form-control"
-  value={formData[fieldName] ?? ""}
-  onChange={(e) =>
-    handleInputChange(fieldName, e.target.value, fieldConfig.type)
-  }
-  required={fieldConfig.required}
-/>
-              </div>
+        <button
+          data-testid="dynamic-submit"
+          type="submit"
+          className="btn btn-primary"
+          disabled={submitting}
+        >
+          {submitting ? "Processing..." : editingId ? "Update" : "Create"}
+        </button>
+      </form>
+
+      <hr />
+
+      <table className="table">
+        <thead>
+          <tr>
+            {Object.keys(fields).map((f) => (
+              <th key={f}>{f}</th>
             ))}
+            <th>Actions</th>
+          </tr>
+        </thead>
 
-            <div className="col-12 d-flex gap-2">
-              <button
-                data-testid="dynamic-submit"
-                type="submit"
-                className="btn btn-primary"
-              >
-                {editingId ? "Update" : "Create"}
-              </button>
-
-              {editingId && (
+        <tbody>
+          {records.map((r) => (
+            <tr key={r._id}>
+              {Object.keys(fields).map((f) => (
+                <td key={f}>{r.data?.[f]}</td>
+              ))}
+              <td>
                 <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={resetForm}
+                  onClick={() => {
+                    setEditingId(r._id);
+                    setFormData(r.data);
+                  }}
+                  className="btn btn-sm btn-primary"
                 >
-                  Cancel
+                  Edit
                 </button>
-              )}
-            </div>
-          </form>
-        </div>
-      </div>
 
-      <div className="card shadow-sm">
-        <div className="card-body">
-          <h5 className="card-title mb-3">Records</h5>
-
-          {records.length === 0 ? (
-            <div className="alert alert-light mb-0">No records found.</div>
-          ) : (
-            <div className="table-responsive">
-              <table className="table table-hover align-middle">
-                <thead>
-                  <tr>
-                    {Object.keys(fields).map((fieldName) => (
-                      <th key={fieldName}>{fieldName}</th>
-                    ))}
-                    <th style={{ width: 180 }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {records.map((record) => (
-                    <tr key={record._id}>
-                      {Object.keys(fields).map((fieldName) => (
-                        <td key={fieldName}>
-                          {String(record.data?.[fieldName] ?? "")}
-                        </td>
-                      ))}
-
-                      <td>
-                        <div className="d-flex gap-2">
-                          <button
-                            className="btn btn-sm btn-outline-primary"
-                            onClick={() => startEdit(record)}
-                          >
-                            Edit
-                          </button>
-
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => handleDelete(record._id)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
+                <button
+                  onClick={() => handleDelete(r._id)}
+                  className="btn btn-sm btn-danger ms-2"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

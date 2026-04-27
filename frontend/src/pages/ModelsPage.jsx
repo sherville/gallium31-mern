@@ -11,7 +11,9 @@ export default function ModelsPage() {
     const fetchModels = async () => {
       try {
         const res = await api.get("/api/dynamic/models");
-        setModels(res.data);
+
+        // Backend now returns: { status, message, data }
+        setModels(res.data.data || {});
       } catch (err) {
         setMsg(err?.response?.data?.message || "Failed to load models.");
       } finally {
@@ -27,7 +29,7 @@ export default function ModelsPage() {
       <div className="mb-3">
         <h2 className="mb-1">Dynamic CRUD Models</h2>
         <p className="text-muted mb-0">
-          Select a model to manage its records dynamically.
+          Choose a model below. Forms, tables, validation, and CRUD actions are generated dynamically.
         </p>
       </div>
 
@@ -40,9 +42,7 @@ export default function ModelsPage() {
             <div className="col-md-6 col-lg-4" key={modelName}>
               <div className="card shadow-sm h-100">
                 <div className="card-body d-flex flex-column">
-                  <h5 className="card-title">
-                    {config.label || modelName}
-                  </h5>
+                  <h5 className="card-title">{config.label || modelName}</h5>
 
                   <p className="text-muted small mb-3">
                     Model key: <strong>{modelName}</strong>
@@ -56,7 +56,8 @@ export default function ModelsPage() {
                           <li key={fieldName}>
                             {fieldName}{" "}
                             <span className="text-muted">
-                              ({fieldConfig.type})
+                              ({fieldConfig.type}
+                              {fieldConfig.format ? `, ${fieldConfig.format}` : ""})
                             </span>
                           </li>
                         )
